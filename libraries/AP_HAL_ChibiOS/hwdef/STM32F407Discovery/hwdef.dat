@@ -1,0 +1,75 @@
+# hw definition file for processing by chibios_hwdef.py
+# for the ST STM32F407G-DISC1 (STM32F4DISCOVERY) development board.
+# This is a development target: it has no IMU or barometer that
+# ArduPilot supports, so vehicle firmware will boot to a config error
+# but still talks MAVLink over USB.
+
+AUTOBUILD_TARGETS None
+
+# MCU class and specific type
+MCU STM32F4xx STM32F407xx
+
+# board ID. See Tools/AP_Bootloader/board_types.txt
+APJ_BOARD_ID TARGET_HW_PX4_DISCOVERY_V1
+
+FLASH_SIZE_KB 1024
+
+# reserve 32k for bootloader and 32k for flash storage
+FLASH_RESERVE_START_KB 64
+STORAGE_FLASH_PAGE 2
+define HAL_STORAGE_SIZE 15360
+
+# 8MHz crystal (X2)
+OSCILLATOR_HZ 8000000
+
+STM32_ST_USE_TIMER 5
+
+# USB OTG FS on CN5
+PA9  VBUS INPUT OPENDRAIN
+PA11 OTG_FS_DM OTG1
+PA12 OTG_FS_DP OTG1
+
+PA13 JTMS-SWDIO SWD
+PA14 JTCK-SWCLK SWD
+
+# SERIAL0: USB, SERIAL1: USART2 telem, SERIAL2: USART3 GPS
+SERIAL_ORDER OTG1 USART2 USART3
+
+PA2 USART2_TX USART2
+PA3 USART2_RX USART2
+
+PD8 USART3_TX USART3 NODMA
+PD9 USART3_RX USART3 NODMA
+
+# keep the on-board LIS3DSH deselected
+PE3 LIS3DSH_CS CS
+
+# PWM outputs on the P2 header
+PE9  TIM1_CH1 TIM1 PWM(1) GPIO(50)
+PE11 TIM1_CH2 TIM1 PWM(2) GPIO(51)
+PE13 TIM1_CH3 TIM1 PWM(3) GPIO(52)
+PE14 TIM1_CH4 TIM1 PWM(4) GPIO(53)
+
+# on-board LEDs (active high): LD5 red, LD4 green, LD6 blue, LD3 orange
+PD14 LED_RED OUTPUT LOW GPIO(10)
+PD12 LED_GREEN OUTPUT LOW GPIO(11)
+PD15 LED_BLUE OUTPUT LOW GPIO(12)
+PD13 LED_ORANGE OUTPUT LOW GPIO(13)
+define HAL_GPIO_LED_ON 1
+define AP_NOTIFY_GPIO_LED_RGB_ENABLED 1
+define AP_NOTIFY_GPIO_LED_RGB_RED_PIN 10
+define AP_NOTIFY_GPIO_LED_RGB_GREEN_PIN 11
+define AP_NOTIFY_GPIO_LED_RGB_BLUE_PIN 12
+
+# analog inputs on free header pins, for a battery monitor
+PC1 BATT_VOLTAGE_SENS ADC1 SCALE(1)
+PC2 BATT_CURRENT_SENS ADC1 SCALE(1)
+define HAL_BATT_VOLT_PIN 11
+define HAL_BATT_CURR_PIN 12
+define HAL_BATT_VOLT_SCALE 10.1
+define HAL_BATT_CURR_SCALE 17.0
+
+# no supported baro on the board
+define HAL_BARO_ALLOW_INIT_NO_BARO 1
+
+include ../include/minimize_features.inc
