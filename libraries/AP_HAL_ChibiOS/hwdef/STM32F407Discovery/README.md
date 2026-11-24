@@ -40,10 +40,22 @@ The bootloader listens on USB and on USART2 (PA2/PA3) at 115200 baud.
 
 | LED              | State                       | Meaning                                       |
 |------------------|-----------------------------|-----------------------------------------------|
-| LD6 blue         | Fast blink (~10 Hz)         | Bootloader running, waiting for an upload     |
-| LD6 blue         | Slow toggle (1 s)           | Bootloader found no valid application         |
+| LD6 blue         | Fast blink (toggles every 50 ms) | Bootloader running, waiting for an upload |
 | LD4 green        | Flicker                     | Bootloader protocol activity                  |
 | Red/green/blue   | ArduPilot notify patterns   | Application is running                        |
+
+## Boot behaviour
+
+This board has no CAN and the firmware signature check
+(`AP_CHECK_FIRMWARE_ENABLED`) is off, so the bootloader decides as follows:
+
+| Reset cause                                   | Bootloader behaviour                          |
+|-----------------------------------------------|-----------------------------------------------|
+| Power-on or B2 reset                          | Waits about 5 s for an upload, then starts the application |
+| Reboot requested by the application           | Starts the application immediately            |
+| Reboot to bootloader (MAVLink or uploader)    | Stays in the bootloader until an upload       |
+| B1 held during reset                          | Stays in the bootloader until an upload       |
+| No application in flash                       | Stays in the bootloader                       |
 
 ## Building
 
@@ -83,7 +95,8 @@ st-flash erase
 st-flash --reset write Tools/bootloaders/STM32F407Discovery_bl.bin 0x08000000
 ```
 
-Expected: LD6 (blue) toggles slowly, because there is no application yet.
+Expected: LD6 (blue) blinks fast and keeps blinking, because there is no
+application to start.
 
 ### 2. Check USB enumeration
 
@@ -131,13 +144,15 @@ port should show up as `STM32F407Discovery-BL` again.
   MAVProxy, `reboot bootloader` does the same.
 - **User button:** hold B1 (blue) and press B2 (black reset). The bootloader
   waits indefinitely instead of starting the application.
-- **No reset path:** with a valid application, a plain reset (B2 only) should
-  start the application immediately.
+- **Plain reset:** with a valid application, B2 alone should give about 5 s
+  of fast blinking, then the application starts. A normal `reboot` from
+  MAVProxy should start the application without that wait.
 
 ### 6. Negative tests
 
 - **Invalid application:** erase only the application area and reset. The
-  bootloader must not jump to it and LD6 should toggle slowly:
+  bootloader must not jump to it; LD6 keeps blinking fast and the port stays
+  `STM32F407Discovery-BL`:
 
   ```sh
   STM32_Programmer_CLI -c port=SWD -e [4 11] -rst
@@ -148,7 +163,9 @@ port should show up as `STM32F407Discovery-BL` again.
 - **Wrong board ID:** upload an `.apj` built for another board. The uploader
   must refuse with a board ID mismatch unless `--force` is given.
 - **Interrupted upload:** unplug USB in the middle of an upload, reconnect,
-  and confirm the bootloader stays active and accepts a new upload.
+  and confirm the bootloader stays active and accepts a new upload. The
+  bootloader writes the first words of the image only once the upload
+  completes, so a partial image is never started.
 
 ### 7. Serial (USART2) path
 
