@@ -391,6 +391,14 @@ void led_pulses(uint8_t npulses)
     }
 }
 
+/*
+  stop GCC from recognising the loops below as library idioms. Newer
+  GCC (seen with 14.3) otherwise compiles strlen() into a branch to
+  itself, which hangs the bootloader on the first USB string
+ */
+#pragma GCC push_options
+#pragma GCC optimize("no-tree-loop-distribute-patterns")
+
 //simple variant of std c function to reduce used flash space
 void *memcpy(void *dest, const void *src, size_t n)
 {
@@ -442,6 +450,8 @@ void *memset(void *s, int c, size_t n)
     }
     return s;
 }
+
+#pragma GCC pop_options
 
 #if defined(BOOTLOADER_DEV_LIST)
 void lock_bl_port(void)
